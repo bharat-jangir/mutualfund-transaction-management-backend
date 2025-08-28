@@ -14,6 +14,7 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import com.rtd.finance_backend.model.UploadedTransactionInfo;
+import com.rtd.finance_backend.model.TransactionLot;
 
 public class ExcelHelper {
 
@@ -47,6 +48,28 @@ public class ExcelHelper {
         }
         transactions.forEach(n->System.out.println(n.toString()));
         return transactions;
+    }
+
+    /**
+     * Create TransactionLot for purchase transactions
+     */
+    public static TransactionLot createTransactionLotFromTransaction(UploadedTransactionInfo transaction) {
+        if (!"PURCHASE".equalsIgnoreCase(transaction.getTxnType())) {
+            throw new IllegalArgumentException("Transaction must be a PURCHASE to create a lot");
+        }
+        
+        TransactionLot lot = new TransactionLot();
+        lot.setPan(transaction.getPan());
+        lot.setSchemeId(transaction.getSchemeId());
+        lot.setFolioNo(transaction.getFolioNo());
+        lot.setPurchaseDate(transaction.getTxnDate());
+        lot.setPurchaseNav(transaction.getTxnNav());
+        lot.setPurchaseUnits(transaction.getTxnUnits());
+        lot.setPurchaseAmount(transaction.getTxnAmount());
+        lot.setRemainingUnits(transaction.getTxnUnits());
+        lot.setIsActive(true);
+        
+        return lot;
     }
 
     // Helper method to safely get cell values (either string or numeric)

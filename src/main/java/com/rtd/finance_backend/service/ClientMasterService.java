@@ -11,4 +11,6 @@ public interface ClientMasterService {
     void deleteClient(Integer id);
     Optional<ClientMaster> getClientById(Integer id);
     List<ClientMaster> getAllClients();
+    List<ClientMaster> getActiveClients();
+    List<ClientMaster> searchClients(String query);
 }

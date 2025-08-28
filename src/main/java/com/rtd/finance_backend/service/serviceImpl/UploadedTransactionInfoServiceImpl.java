@@ -7,16 +7,23 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.rtd.finance_backend.helperclasses.ExcelHelper;
 import com.rtd.finance_backend.model.UploadedTransactionInfo;
+import com.rtd.finance_backend.model.TransactionLot;
 import com.rtd.finance_backend.repository.UploadedTransactionInfoRepository;
 import com.rtd.finance_backend.service.UploadedTransactionInfoService;
+import com.rtd.finance_backend.service.FifoService;
 
 @Service
 public class UploadedTransactionInfoServiceImpl implements UploadedTransactionInfoService {
 
     @Autowired
     private UploadedTransactionInfoRepository repository;
+    
+    @Autowired
+    private FifoService fifoService;
 
     @Override
     public void saveAll(List<UploadedTransactionInfo> transactions) {
@@ -45,6 +52,7 @@ public class UploadedTransactionInfoServiceImpl implements UploadedTransactionIn
         }
     }
 
+    @Transactional
     public void upsertTransactions(List<UploadedTransactionInfo> transactions) {
         for (UploadedTransactionInfo txn : transactions) {
             Optional<UploadedTransactionInfo> existingTxnOpt = repository.findByPanAndTxnDateAndSchemeId(
@@ -67,6 +75,19 @@ public class UploadedTransactionInfoServiceImpl implements UploadedTransactionIn
             } else {
                 txn.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
                 repository.save(txn);
+                
+                // Create FIFO lot for purchase transactions
+                if ("PURCHASE".equalsIgnoreCase(txn.getTxnType())) {
+                    fifoService.createPurchaseLot(
+                        txn.getPan(),
+                        txn.getSchemeId(),
+                        txn.getFolioNo(),
+                        txn.getTxnDate(),
+                        txn.getTxnNav(),
+                        txn.getTxnUnits(),
+                        txn.getTxnAmount()
+                    );
+                }
             }
         }
     }

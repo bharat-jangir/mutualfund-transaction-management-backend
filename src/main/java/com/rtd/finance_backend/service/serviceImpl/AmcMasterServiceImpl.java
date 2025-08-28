@@ -1,5 +1,7 @@
 package com.rtd.finance_backend.service.serviceImpl;
 
+import com.rtd.finance_backend.exception.ResourceNotFoundException;
+import com.rtd.finance_backend.exception.ValidationException;
 import com.rtd.finance_backend.model.AmcMaster;
 import com.rtd.finance_backend.repository.AmcMasterRepository;
 import com.rtd.finance_backend.service.AmcMasterService;
@@ -17,21 +19,35 @@ public class AmcMasterServiceImpl implements AmcMasterService {
 
     @Override
     public AmcMaster createAmc(AmcMaster amc) {
+        // Check if AMC code already exists
+        if (amcMasterRepository.findByAmcCode(amc.getAmcCode()).isPresent()) {
+            throw new ValidationException("AMC code already exists: " + amc.getAmcCode());
+        }
         return amcMasterRepository.save(amc);
     }
 
     @Override
     public AmcMaster updateAmc(Integer id, AmcMaster updatedAmc) {
-        return amcMasterRepository.findById(id).map(amc -> {
-            amc.setAmcCode(updatedAmc.getAmcCode());
-            amc.setAmcName(updatedAmc.getAmcName());
-            return amcMasterRepository.save(amc);
-        }).orElseThrow(() -> new RuntimeException("AMC not found with id " + id));
+        AmcMaster existingAmc = amcMasterRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("AMC", "id", id));
+        
+        // Check if AMC code is being changed and if it already exists
+        if (!existingAmc.getAmcCode().equals(updatedAmc.getAmcCode())) {
+            if (amcMasterRepository.findByAmcCode(updatedAmc.getAmcCode()).isPresent()) {
+                throw new ValidationException("AMC code already exists: " + updatedAmc.getAmcCode());
+            }
+        }
+        
+        existingAmc.setAmcCode(updatedAmc.getAmcCode());
+        existingAmc.setAmcName(updatedAmc.getAmcName());
+        return amcMasterRepository.save(existingAmc);
     }
 
     @Override
     public void deleteAmc(Integer id) {
-        amcMasterRepository.deleteById(id);
+        AmcMaster amc = amcMasterRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("AMC", "id", id));
+        amcMasterRepository.delete(amc);
     }
 
     @Override
